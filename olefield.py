@@ -1,13 +1,9 @@
+"""Extract files Microsoft Access OLE object fields"""
+
 import struct
 import sys
 from pprint import pprint
 
-# The most helpfull resource about OLE objects in Microsoft Access fields:
-# * http://jvdveen.blogspot.com/2009/01/ole-and-accessing-files-embedded-in.html
-# * http://jvdveen.blogspot.com/2009/02/ole-and-accessing-files-embedded-in.html
-#
-# On WMF:
-# * Windows Metafile Format (wmf) Specification: http://download.microsoft.com/download/5/0/1/501ED102-E53F-4CE0-AA6B-B0F93629DDC6/WindowsMetafileFormat(wmf)Specification.pdf
 
 def sformat(s):
     return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
@@ -32,6 +28,15 @@ class BadDataError(Exception):
     pass
 
 def parse_olefield(s, verbose=False):
+    """Parse OLE object field and return iterator over 'objects' embedded
+
+    Each iteration returns (object_type, object_content) tuple
+    """
+
+    # The most helpfull resource about OLE objects in Microsoft Access fields:
+    # * http://jvdveen.blogspot.com/2009/01/ole-and-accessing-files-embedded-in.html
+    # * http://jvdveen.blogspot.com/2009/02/ole-and-accessing-files-embedded-in.html
+
     length, header = unwrap(s, """h signature
                                   h header_size
                                   i object_type
@@ -91,6 +96,16 @@ BITMAPINFOHEADER = 40
 BI_BITCOUNT_5 = 0x0018
 
 def parse_metafile(s, verbose=False):
+    """Parse Metafile inside OLE field and return iterator over BMP files
+
+    suitable for 'METAFILEPICT' OLE field object `parse_olefield` return
+    """
+
+    # The content of METAFILEPICT object is a Windows Metafile,
+    # but with 8 bytes prepended (don't know what they mean).
+    #
+    # Metafile spec: "Windows Metafile Format (wmf) Specification",
+    # http://download.microsoft.com/download/5/0/1/501ED102-E53F-4CE0-AA6B-B0F93629DDC6/WindowsMetafileFormat(wmf)Specification.pdf
 
     # metafile header
     length, header = unwrap(s, """8s unknown
@@ -139,8 +154,8 @@ def parse_metafile(s, verbose=False):
 
             # We have our DIB file! Yes, but we have to cook BMP header,
             # which needs image data offset. To find out the offset we will
-            # parse DIB. In current implementation we just abort on all cases
-            # where offset != BMP_header_len + DIB header size.
+            # parse DIB. In this implementation we just abort on all complex
+            # DIB files (where offset != BMP header size + DIB header size).
 
             # DIB header
             _, dib_header = unwrap(dib, """I header_size
