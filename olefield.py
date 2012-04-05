@@ -9,7 +9,14 @@ def sformat(s):
     return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
 
 def unwrap(s, spec):
-    """Return (consumed_length, data_dict)"""
+    """Unwrap binary `s` according to `spec`, return (consumed_length, data)
+
+    Basically it's convenient wrapper around struct.unpack. Usage:
+    >>> unwrap('\x01\x00\x02\x00something else', '''h first_word
+    ...                                             h second_word''')
+    (4, {'first_word': 1, 'second_word': 2})
+    """
+
     fmt = '<'
     names = []
     for spec in spec.split('\n'):
