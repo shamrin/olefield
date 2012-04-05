@@ -10,7 +10,7 @@ Usage:
 
 ```python
 >>> from olefield import parse_olefield, parse_metafile
->>> ole_content = '<content of your OLE field>'
+>>> ole_content = '...' # you have to load oleobject field content somehow ;-)
 >>> n = 1
 >>> for object_type, data in parse_olefield(ole_content):
 ...     if object_type == 'METAFILEPICT':
