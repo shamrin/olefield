@@ -52,7 +52,7 @@ def parse_olefield(s, verbose=False):
                                   h friendly_off
                                   h class_off""")
     if verbose: pprint(header)
-    if header['signature'] != struct.unpack('<h', '\x15\x1c')[0]:
+    if header['signature'] != 0x1c15:
         raise BadDataError('Bad signature')
 
     def unpack_name(what):
@@ -79,7 +79,7 @@ def parse_olefield(s, verbose=False):
                                           I ole_format
                                           i object_type_len""")
         if verbose: pprint(ole_header)
-        if ole_header['ole_version'] != struct.unpack('<I', '\x01\x05\x00\x00')[0]:
+        if ole_header['ole_version'] != 0x0501:
             raise BadDataError('Unsupported OLE version')
         s = s[length:]
 
@@ -124,9 +124,9 @@ def parse_metafile(s, verbose=False):
                                   I max_record_len
                                   H unused_should_be_0""")
     if verbose: pprint(header)
-    if header['type'] != struct.unpack('<h', '\x01\x00')[0]:
+    if header['type'] != 0x0001:
         raise BadDataError('Unknown metafile type')
-    if header['version'] != struct.unpack('<h', '\x00\x03')[0]:
+    if header['version'] != 0x0300:
         raise BadDataError('Unsupported metafile version')
     if header['num_of_objects'] > 0:
         raise BadDataError('Metafile with graphics objects not supported')
