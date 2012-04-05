@@ -1,6 +1,7 @@
 """Extract files Microsoft Access OLE object fields"""
 
 import struct
+import re
 import sys
 from pprint import pprint
 
@@ -8,8 +9,8 @@ from pprint import pprint
 def sformat(s):
     return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
 
-def unwrap(s, spec):
-    """Unwrap binary `s` according to `spec`, return (consumed_length, data)
+def unwrap(binary, spec):
+    """Unwrap `binary` according to `spec`, return (consumed_length, data)
 
     Basically it's a convenient wrapper around struct.unpack. Usage:
     >>> unwrap('\x01\x00\x02\x00something else', '''h first_word
@@ -17,19 +18,14 @@ def unwrap(s, spec):
     (4, {'first_word': 1, 'second_word': 2})
     """
 
-    fmt = '<'
-    names = []
-    for spec in spec.split('\n'):
-        if spec:
-            t, _, name = spec.strip().partition(' ')
-            t = t.strip()
-            name = name.strip()
-            fmt += t
-            names.append(name)
+    matches = [re.match('\s*(\w+)\s+(\w+)', s)
+               for s in spec.split('\n') if s.strip()]
+    fmt = '<' + ''.join(m.group(1) for m in matches)
+    names = [m.group(2) for m in matches]
 
     length = struct.calcsize(fmt)
 
-    return length, dict(zip(names, struct.unpack(fmt, s[:length])))
+    return length, dict(zip(names, struct.unpack(fmt, binary[:length])))
 
 class BadDataError(Exception):
     pass
