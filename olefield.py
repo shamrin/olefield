@@ -89,10 +89,12 @@ def parse_olefield(s, verbose=False):
         length, block_header = unwrap(s, """i data_block_len""")
 
         if verbose: pprint(block_header)
+
         data = s[length:length+block_header['data_block_len']]
         #if verbose: print 'data', sformat(data)
-        s = s[length+block_header['data_block_len']:]
         yield ole_header_cont['object_type'].rstrip('\x00'), data
+
+        s = s[length+block_header['data_block_len']:]
 
 META_EOF = 0x0000
 META_DIBSTRETCHBLT = 0x0b41
@@ -102,7 +104,7 @@ BI_BITCOUNT_5 = 0x0018
 def parse_metafile(s, verbose=False):
     """Parse Metafile inside OLE field and return iterator over BMP files
 
-    suitable for 'METAFILEPICT' OLE field object `parse_olefield` return
+    Can parse 'METAFILEPICT' objects from `parse_olefield`
     """
 
     # The content of METAFILEPICT object is a Windows Metafile,
