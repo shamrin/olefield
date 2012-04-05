@@ -1,6 +1,6 @@
-## olefield: parsing Microsoft Access&reg; OLE object fields
+## olefield: parse Microsoft Access&reg; OLE object fields
 
-`olefield` is a Python module for poor souls who need to parse data out of Microsoft Access&reg; OLE object fields.
+`olefield` is a Python module for poor souls who need to extract data out of Microsoft Access&reg; OLE object fields.
 
 Usage:
 
