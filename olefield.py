@@ -40,10 +40,11 @@ def parse_olefield(s, verbose=False):
     Each iteration returns (object_type, object_content) tuple
     """
 
-    # The most helpfull resource about OLE objects in Microsoft Access fields:
+    # The best information about OLE objects in Microsoft Access fields:
     # * http://jvdveen.blogspot.com/2009/01/ole-and-accessing-files-embedded-in.html
     # * http://jvdveen.blogspot.com/2009/02/ole-and-accessing-files-embedded-in.html
 
+    # oleobject field header
     length, header = unwrap(s, """h signature
                                   h header_size
                                   i object_type
