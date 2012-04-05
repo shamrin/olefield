@@ -177,13 +177,13 @@ def parse_metafile(s, verbose=False):
         if record_header['function'] == META_EOF and s:
             raise BadDataError("Metafile didn't end with end-of-file record")
 
-    
-paint = open('paintbrush_picture_big_boy').read()
-dib = open('dib_picture_big_boy').read()
+if __name__ == '__main__':
+    paint = open('paintbrush_picture_big_boy').read()
+    dib = open('dib_picture_big_boy').read()
 
-for olefield in (dib, paint):
-    for object_type, data in parse_olefield(olefield):
-        print object_type, sformat(data)
-        if object_type == 'METAFILEPICT':
-            for image in parse_metafile(data, verbose=False):
-                print 'image', sformat(image)
+    for olefield in (dib, paint):
+        for object_type, data in parse_olefield(olefield):
+            print object_type, sformat(data)
+            if object_type == 'METAFILEPICT':
+                for image in parse_metafile(data):
+                    print 'image', sformat(image)
