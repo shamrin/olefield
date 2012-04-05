@@ -11,7 +11,7 @@ def sformat(s):
 def unwrap(s, spec):
     """Unwrap binary `s` according to `spec`, return (consumed_length, data)
 
-    Basically it's convenient wrapper around struct.unpack. Usage:
+    Basically it's a convenient wrapper around struct.unpack. Usage:
     >>> unwrap('\x01\x00\x02\x00something else', '''h first_word
     ...                                             h second_word''')
     (4, {'first_word': 1, 'second_word': 2})
