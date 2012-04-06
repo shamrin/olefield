@@ -110,8 +110,8 @@ def parse_metafile(s, verbose=False):
     # The content of METAFILEPICT object is a Windows Metafile,
     # but with 8 bytes prepended (don't know what they mean).
     #
-    # Metafile spec: "Windows Metafile Format (wmf) Specification",
-    # http://download.microsoft.com/download/5/0/1/501ED102-E53F-4CE0-AA6B-B0F93629DDC6/WindowsMetafileFormat(wmf)Specification.pdf
+    # Also see "Windows Metafile Format (wmf) Specification":
+    # http://msdn.microsoft.com/en-us/library/cc215212.aspx
 
     # metafile header
     length, header = unwrap(s, """8s unknown
