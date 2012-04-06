@@ -160,7 +160,7 @@ def parse_metafile(s, verbose=False):
 def sformat(s):
     return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
 
-def unwrap(binary, spec, data_name=''):
+def unwrap(binary, spec, data_name=None):
     """Unwrap `binary` according to `spec`, return (consumed_length, data)
 
     Basically it's a convenient wrapper around struct.unpack. Each non-empty
@@ -182,7 +182,7 @@ def unwrap(binary, spec, data_name=''):
                            (\w+)           # field name
                            ((.+)\ ([!?]))? # optional test-action pair
                            $""", s.strip(), re.VERBOSE)
-               for s in spec.split('\n') if s.strip()]
+               for s in spec.split('\n') if s and not s.isspace()]
 
     for n, m in enumerate(matches):
         if not m: raise SyntaxError('Bad unwrap spec, LINE %d' % (n+1))
@@ -192,15 +192,14 @@ def unwrap(binary, spec, data_name=''):
     tests = [(m.group(4), m.group(5)) for m in matches]
 
     length = struct.calcsize(fmt)
-    fields = struct.unpack(fmt, binary[:length])
+    values = struct.unpack(fmt, binary[:length])
 
-    if data_name: data_name += ' '
-    for f, name, (test, action) in zip(fields, names, tests):
+    for f, name, (test, action) in zip(values, names, tests):
         if test and not eval(name + test, {name: f}, globals()):
-            raise BadDataError('%s %s%s' %
-                ('Bad' if action=='!' else 'Unsupported', data_name or '', name))
+            raise BadDataError(' '.join(w for w in
+                ['Bad' if action=='!' else 'Unknown', data_name, name] if w))
 
-    return length, dict(zip(names, fields))
+    return length, dict(zip(names, values))
 
 if __name__ == '__main__':
     paint = open('paintbrush_picture_big_boy').read()
