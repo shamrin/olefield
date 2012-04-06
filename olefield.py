@@ -172,10 +172,9 @@ def unwrap(binary, spec, data_name=''):
     action - what to do if test failed: `!` (bad data) or `?` (unsupported)
 
     Example:
-    >>> unwrap('\x01\x00something else', '''h word
-    ...                                     9s string == 'something' ?
-                                         ''')
-    (4, {'word': 1, 'string': 'something'})
+    >>> unwrap('magic\x01\x00something else', '''5s signature == 'magic' !
+    ...                                          h word''')
+    (4, {'word': 1, 'signature': 'magic'})
     """
 
     matches = [re.match("""\s*
