@@ -201,13 +201,14 @@ def unwrap(binary, spec, data_name=None):
 
     return length, dict(zip(names, values))
 
-if __name__ == '__main__':
-    paint = open('paintbrush_picture_big_boy').read()
-    dib = open('dib_picture_big_boy').read()
-
-    for olefield in (dib, paint):
+if __name__ == '__main__': # tests
+    master = open('test/master.bmp').read()
+    for filename in ['test/paintbrush', 'test/dib']:
+        print '%s:' % filename
+        olefield = open(filename, 'rb').read()
         for object_type, data in parse_olefield(olefield):
-            print object_type, sformat(data)
+            print '\t- object %r %d bytes' % (object_type, len(data))
             if object_type == 'METAFILEPICT':
                 for image in parse_metafile(data):
-                    print 'image', sformat(image)
+                    assert master == image
+                    print '\t\t* BMP image %d bytes: ok' % len(image)
