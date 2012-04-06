@@ -177,13 +177,11 @@ def unwrap(binary, spec, data_name=''):
     (4, {'word': 1, 'signature': 'magic'})
     """
 
-    matches = [re.match("""\s*
-                           (\w+)           # struct format
+    matches = [re.match("""(\w+)           # struct format
                            \s+
                            (\w+)           # field name
                            ((.+)\ ([!?]))? # optional test-action pair
-                           $
-                        """, s, re.VERBOSE)
+                           $""", s.strip(), re.VERBOSE)
                for s in spec.split('\n') if s.strip()]
 
     for n, m in enumerate(matches):
