@@ -5,55 +5,6 @@ import re
 import sys
 from pprint import pprint
 
-
-def sformat(s):
-    return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
-
-def unwrap(binary, spec, data_name=''):
-    """Unwrap `binary` according to `spec`, return (consumed_length, data)
-
-    Basically it's a convenient wrapper around struct.unpack. Each non-empty
-    line in spec must be: <struct format> <field name> [<test> <action>]
-
-    struct format - struct module format producing exactly one value
-    field name - dictionary key to put unpacked value into
-    test - optional test (unpacked) value should pass
-    action - what to do if test failed: `!` (bad data) or `?` (unsupported)
-
-    Example:
-    >>> unwrap('\x01\x00something else', '''h word
-    ...                                     9s string == 'something' ?
-                                         ''')
-    (4, {'word': 1, 'string': 'something'})
-    """
-
-    matches = [re.match("""\s*
-                           (\w+)           # struct format
-                           \s+
-                           (\w+)           # field name
-                           ((.+)\ ([!?]))? # optional test-action pair
-                           $
-                        """, s, re.VERBOSE)
-               for s in spec.split('\n') if s.strip()]
-
-    for n, m in enumerate(matches):
-        if not m: raise SyntaxError('Bad unwrap spec, LINE %d' % (n+1))
-
-    fmt = '<' + ''.join(m.group(1) for m in matches)
-    names = [m.group(2) for m in matches]
-    tests = [(m.group(4), m.group(5)) for m in matches]
-
-    length = struct.calcsize(fmt)
-    fields = struct.unpack(fmt, binary[:length])
-
-    if data_name: data_name += ' '
-    for f, name, (test, action) in zip(fields, names, tests):
-        if test and not eval(name + test, {name: f}, globals()):
-            raise BadDataError('%s %s%s' %
-                ('Bad' if action=='!' else 'Unsupported', data_name or '', name))
-
-    return length, dict(zip(names, fields))
-
 class BadDataError(Exception):
     pass
 
@@ -205,6 +156,54 @@ def parse_metafile(s, verbose=False):
 
         if record_header['function'] == META_EOF and s:
             raise BadDataError("Metafile didn't end with end-of-file record")
+
+def sformat(s):
+    return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
+
+def unwrap(binary, spec, data_name=''):
+    """Unwrap `binary` according to `spec`, return (consumed_length, data)
+
+    Basically it's a convenient wrapper around struct.unpack. Each non-empty
+    line in spec must be: <struct format> <field name> [<test> <action>]
+
+    struct format - struct module format producing exactly one value
+    field name - dictionary key to put unpacked value into
+    test - optional test (unpacked) value should pass
+    action - what to do if test failed: `!` (bad data) or `?` (unsupported)
+
+    Example:
+    >>> unwrap('\x01\x00something else', '''h word
+    ...                                     9s string == 'something' ?
+                                         ''')
+    (4, {'word': 1, 'string': 'something'})
+    """
+
+    matches = [re.match("""\s*
+                           (\w+)           # struct format
+                           \s+
+                           (\w+)           # field name
+                           ((.+)\ ([!?]))? # optional test-action pair
+                           $
+                        """, s, re.VERBOSE)
+               for s in spec.split('\n') if s.strip()]
+
+    for n, m in enumerate(matches):
+        if not m: raise SyntaxError('Bad unwrap spec, LINE %d' % (n+1))
+
+    fmt = '<' + ''.join(m.group(1) for m in matches)
+    names = [m.group(2) for m in matches]
+    tests = [(m.group(4), m.group(5)) for m in matches]
+
+    length = struct.calcsize(fmt)
+    fields = struct.unpack(fmt, binary[:length])
+
+    if data_name: data_name += ' '
+    for f, name, (test, action) in zip(fields, names, tests):
+        if test and not eval(name + test, {name: f}, globals()):
+            raise BadDataError('%s %s%s' %
+                ('Bad' if action=='!' else 'Unsupported', data_name or '', name))
+
+    return length, dict(zip(names, fields))
 
 if __name__ == '__main__':
     paint = open('paintbrush_picture_big_boy').read()
