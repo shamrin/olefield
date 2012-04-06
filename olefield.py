@@ -9,23 +9,50 @@ from pprint import pprint
 def sformat(s):
     return '%d:%r' % (len(s), s if len(s) < 30 else (s[:40]+'...'+s[-20:]))
 
-def unwrap(binary, spec):
+def unwrap(binary, spec, data_name=''):
     """Unwrap `binary` according to `spec`, return (consumed_length, data)
 
-    Basically it's a convenient wrapper around struct.unpack. Usage:
-    >>> unwrap('\x01\x00\x02\x00something else', '''h first_word
-    ...                                             h second_word''')
-    (4, {'first_word': 1, 'second_word': 2})
+    Basically it's a convenient wrapper around struct.unpack. Each non-empty
+    line in spec must be: <struct format> <field name> [<test> <action>]
+
+    struct format - struct module format producing exactly one value
+    field name - dictionary key to put unpacked value into
+    test - optional test (unpacked) value should pass
+    action - what to do if test failed: `!` (bad data) or `?` (unsupported)
+
+    Example:
+    >>> unwrap('\x01\x00something else', '''h word
+    ...                                     9s string == 'something' ?
+                                         ''')
+    (4, {'word': 1, 'string': 'something'})
     """
 
-    matches = [re.match('\s*(\w+)\s+(\w+)', s)
+    matches = [re.match("""\s*
+                           (\w+)           # struct format
+                           \s+
+                           (\w+)           # field name
+                           ((.+)\ ([!?]))? # optional test-action pair
+                           $
+                        """, s, re.VERBOSE)
                for s in spec.split('\n') if s.strip()]
+
+    for n, m in enumerate(matches):
+        if not m: raise SyntaxError('Bad unwrap spec, LINE %d' % (n+1))
+
     fmt = '<' + ''.join(m.group(1) for m in matches)
     names = [m.group(2) for m in matches]
+    tests = [(m.group(4), m.group(5)) for m in matches]
 
     length = struct.calcsize(fmt)
+    fields = struct.unpack(fmt, binary[:length])
 
-    return length, dict(zip(names, struct.unpack(fmt, binary[:length])))
+    if data_name: data_name += ' '
+    for f, name, (test, action) in zip(fields, names, tests):
+        if test and not eval(name + test, {name: f}, globals()):
+            raise BadDataError('%s %s%s' %
+                ('Bad' if action=='!' else 'Unsupported', data_name or '', name))
+
+    return length, dict(zip(names, fields))
 
 class BadDataError(Exception):
     pass
@@ -41,7 +68,7 @@ def parse_olefield(s, verbose=False):
     # * http://jvdveen.blogspot.com/2009/02/ole-and-accessing-files-embedded-in.html
 
     # oleobject field header
-    length, header = unwrap(s, """h signature
+    length, header = unwrap(s, """h signature == 0x1c15 !
                                   h header_size
                                   i object_type
                                   h friendly_len
@@ -49,8 +76,6 @@ def parse_olefield(s, verbose=False):
                                   h friendly_off
                                   h class_off""")
     if verbose: pprint(header)
-    if header['signature'] != 0x1c15:
-        raise BadDataError('Bad signature')
 
     def unpack_name(what):
         offset, length = header['%s_off' % what], header['%s_len' % what]
@@ -66,18 +91,15 @@ def parse_olefield(s, verbose=False):
     while 1:
         if len(s) <= 4:
             length, footer = unwrap(s, """1s unknown
-                                          3s footer""")
+                                          3s footer == '\xad\x05\xfe' !
+                                       """)
             if verbose: print 'footer %r' % footer
-            if footer['footer'] != '\xad\x05\xfe':
-                raise BadDataError('Bad footer')
             break
 
-        length, ole_header = unwrap(s, """I ole_version
+        length, ole_header = unwrap(s, """I ole_version == 0x0501 ?
                                           I ole_format
                                           i object_type_len""")
         if verbose: pprint(ole_header)
-        if ole_header['ole_version'] != 0x0501:
-            raise BadDataError('Unsupported OLE version')
         s = s[length:]
 
         length, ole_header_cont = unwrap(s, """{object_type_len}s object_type
@@ -115,21 +137,14 @@ def parse_metafile(s, verbose=False):
 
     # metafile header
     length, header = unwrap(s, """8s unknown
-                                  H type
+                                  H type == 0x0001 ?
                                   H header_size
-                                  H version
+                                  H version == 0x0300 ?
                                   I metafile_size
-                                  H num_of_objects
+                                  H num_of_objects == 0 ?
                                   I max_record_len
-                                  H unused_should_be_0""")
+                                  H unused_should_be_0""", 'metafile')
     if verbose: pprint(header)
-    if header['type'] != 0x0001:
-        raise BadDataError('Unknown metafile type')
-    if header['version'] != 0x0300:
-        raise BadDataError('Unsupported metafile version')
-    if header['num_of_objects'] > 0:
-        raise BadDataError('Metafile with graphics objects not supported')
-
     s = s[length:]
 
     while s:
@@ -164,25 +179,18 @@ def parse_metafile(s, verbose=False):
             # DIB files (where offset != BMP header size + DIB header size).
 
             # DIB header
-            _, dib_header = unwrap(dib, """I header_size
+            _, dib_header = unwrap(dib, """I header_size == BITMAPINFOHEADER ?
                                            i width
                                            i height
                                            H planes
-                                           H bit_count
+                                           H bit_count == BI_BITCOUNT_5 ?
                                            I compression
                                            I image_size
                                            i hres
                                            i vres
-                                           I ncolors
-                                           I nimpcolors""")
+                                           I ncolors == 0 ?
+                                           I nimpcolors""", 'DIB')
             if verbose: pprint(dib_header)
-
-            if dib_header['header_size'] != BITMAPINFOHEADER:
-                raise BadDataError('Unsupported DIB header type')
-            if dib_header['bit_count'] != BI_BITCOUNT_5:
-                raise BadDataError('Unsupported DIB bit_count value')
-            if dib_header['ncolors'] != 0:
-                raise BadDataError('Unsupported DIB ncolors value')
 
             # BMP header format
             BMP = '<2sIHHI'
