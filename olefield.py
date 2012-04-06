@@ -194,10 +194,11 @@ def unwrap(binary, spec, data_name=None):
     length = struct.calcsize(fmt)
     values = struct.unpack(fmt, binary[:length])
 
-    for f, name, (test, action) in zip(values, names, tests):
-        if test and not eval(name + test, {name: f}, globals()):
+    for v, name, (test, action) in zip(values, names, tests):
+        if test and not eval(name + test, {name: v}, globals()):
+            adj = {'!': 'Bad', '?': 'Unknown'}[action]
             raise BadDataError(' '.join(w for w in
-                ['Bad' if action=='!' else 'Unknown', data_name, name] if w))
+                    [adj, data_name, name, '== %r' % v] if w))
 
     return length, dict(zip(names, values))
 
