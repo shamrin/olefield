@@ -196,7 +196,7 @@ def unwrap(binary, spec, data_name=None):
 
     for v, name, (test, action) in zip(values, names, tests):
         if test and not eval(name + test, {name: v}, globals()):
-            adj = {'!': 'Bad', '?': 'Unknown'}[action]
+            adj = {'!': 'Bad', '?': 'Unsupported'}[action]
             raise BadDataError(' '.join(w for w in
                     [adj, data_name, name, '== %r' % v] if w))
 
