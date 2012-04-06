@@ -56,6 +56,9 @@ def parse_olefield(s, verbose=False):
         length, ole_header_cont = unwrap(s, """{object_type_len}s object_type
                                                8s unknown
                                             """.format(**ole_header))
+        # Observations about ole_header_cont['unknown']:
+        #  object_type=METAFILEPICT: [ii] bmp_width*~26.46, -bmp_height*~26.46
+        #  object_type=PBrush: all zeros
         if verbose: pprint(ole_header_cont)
         s = s[length:]
 
@@ -81,10 +84,13 @@ def parse_metafile(s, verbose=False):
     """
 
     # The content of METAFILEPICT object is a Windows Metafile,
-    # but with 8 bytes prepended (don't know what they mean).
+    # but with 8 bytes prepended (*)
     #
     # Also see "Windows Metafile Format (wmf) Specification":
     # http://msdn.microsoft.com/en-us/library/cc215212.aspx
+    #
+    # (*): The first word was always 8 for me, the rest is garbage (or
+    #      weirdly truncated data from ole_header_cont['unknown']).
 
     # metafile header
     length, header = unwrap(s, """8s unknown
