@@ -180,9 +180,9 @@ def unwrap(binary, spec, data_name=None):
     action - what to do if test failed: `!` (bad data) or `?` (unsupported)
 
     Example:
-    >>> unwrap('magic\x01\x00something else', '''5s signature == 'magic' !
-    ...                                          h word''')
-    (4, {'word': 1, 'signature': 'magic'})
+    >>> unwrap('\x0a\x00DATA\x00something else', '''h magic == 0x0a !
+    ...                                             4s data''')
+    (6, {'magic': 10, 'data': 'DATA'})
     """
 
     matches = [re.match("""(\w+)           # struct format
