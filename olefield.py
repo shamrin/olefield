@@ -8,7 +8,7 @@ from pprint import pprint
 class BadDataError(Exception):
     pass
 
-def parse_olefield(s, verbose=False):
+def objects(oleobject, verbose=False):
     """Parse OLE object field and return iterator over 'objects' embedded
 
     Each iteration returns (object_type, object_content) tuple
@@ -17,6 +17,8 @@ def parse_olefield(s, verbose=False):
     # The best information about OLE objects in Microsoft Access fields:
     # * http://jvdveen.blogspot.com/2009/01/ole-and-accessing-files-embedded-in.html
     # * http://jvdveen.blogspot.com/2009/02/ole-and-accessing-files-embedded-in.html
+
+    s = oleobject
 
     # oleobject field header
     length, header = unwrap(s, """h signature == 0x1c15 !
@@ -81,20 +83,18 @@ META_DIBSTRETCHBLT = 0x0b41
 BITMAPINFOHEADER = 40
 BI_BITCOUNT_5 = 0x0018
 
-def parse_metafile(s, verbose=False):
-    """Parse Metafile inside OLE field and return iterator over BMP files
+def metafile_bmps(metafilepict, verbose=False):
+    """Parse OLE field METAFILEPICT objects, return iterator over BMPs"""
 
-    Can parse 'METAFILEPICT' objects from `parse_olefield`
-    """
-
-    # The content of METAFILEPICT object is a Windows Metafile,
-    # but with 8 bytes prepended (*)
+    # METAFILEPICT object is Windows Metafile, but with 8 bytes prepended (*)
     #
     # Also see "Windows Metafile Format (wmf) Specification":
     # http://msdn.microsoft.com/en-us/library/cc215212.aspx
     #
-    # (*): The first word was always 8 for me, the rest is garbage (or
+    # (*): The first word was always 8 for me, the rest is likely garbage (or
     #      weirdly truncated data from ole_header_cont['unknown']).
+
+    s = metafilepict
 
     # metafile header
     length, header = unwrap(s, """8s unknown
@@ -134,12 +134,10 @@ def parse_metafile(s, verbose=False):
             dib = s[length+L:record_header['record_size']*2]
             if verbose: print 'DIB', sformat(dib)
 
-            # We have our DIB file! Yes, but we have to cook BMP header,
-            # which needs image data offset. To find out the offset we will
-            # parse DIB. In this implementation we just abort on all complex
-            # DIB files (where offset != BMP header size + DIB header size).
-
-            # DIB header
+            # We have our DIB file! Almost done, but we need BMP header, which
+            # requires image data offset. To find out the offset we will parse
+            # DIB header. For now we just abort on all complex DIB files
+            # (where image data doesn't go immediately after DIB header).
             _, dib_header = unwrap(dib, """I header_size == BITMAPINFOHEADER ?
                                            i width
                                            i height
@@ -201,9 +199,11 @@ def unwrap(binary, spec, data_name=None):
     names = [m.group(2) for m in matches]
     tests = [(m.group(4), m.group(5)) for m in matches]
 
+    # unpack binary data
     length = struct.calcsize(fmt)
     values = struct.unpack(fmt, binary[:length])
 
+    # run optional tests
     for v, name, (test, action) in zip(values, names, tests):
         if test and not eval(name + test, {name: v}, globals()):
             adj = {'!': 'Bad', '?': 'Unsupported'}[action]
@@ -217,9 +217,9 @@ if __name__ == '__main__': # tests
     for filename in ['test/paintbrush', 'test/dib']:
         print '%s:' % filename
         olefield = open(filename, 'rb').read()
-        for object_type, data in parse_olefield(olefield):
+        for object_type, data in objects(olefield):
             print '\t- object %r %d bytes' % (object_type, len(data))
             if object_type == 'METAFILEPICT':
-                for image in parse_metafile(data):
+                for image in metafile_bmps(data):
                     assert master == image
                     print '\t\t* BMP image %d bytes: ok' % len(image)
