@@ -12,9 +12,16 @@ Usage:
 >>> import olefield
 >>> ole_content = '...' # you have to load oleobject field data somehow ;-)
 >>> n = 1
->>> for object_type, data in olefield.objects(ole_content):
-...     if object_type == 'METAFILEPICT':
-...         for bmp in olefield.metafile_bmps(data):
-...             open('%d.bmp' % n, 'wb').write(bmp)
-...             n += 1
+>>> for bmp in olefield.bmps(ole_content):
+...     open('%d.bmp' % n, 'wb').write(bmp)
 ```
+
+If the above fails or you need to extract something else (beside BMP), try lower level API:
+
+```
+>>> n = 1
+>>> for object_type, data in olefield.objects(ole_content):
+...     print '%r %d bytes: %r' % object_type, len(data), data[:30]
+```
+
+Then send me an email telling me what you get ;-)

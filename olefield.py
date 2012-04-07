@@ -8,6 +8,17 @@ from pprint import pprint
 class BadDataError(Exception):
     pass
 
+def bmps(oleobject):
+    """Return iterator over all BMPs inside OLE object field"""
+
+    for object_type, data in objects(oleobject):
+        if object_type == 'METAFILEPICT':
+            for image in metafile_bmps(data):
+                yield image
+        elif object_type == 'PBrush':
+            # PBrush data is already BMP
+            yield data
+
 def objects(oleobject, verbose=False):
     """Parse OLE object field and return iterator over 'objects' embedded
 
@@ -222,4 +233,10 @@ if __name__ == '__main__': # tests
             if object_type == 'METAFILEPICT':
                 for image in metafile_bmps(data):
                     assert master == image
-                    print '\t\t* BMP image %d bytes: ok' % len(image)
+                    print '\t\t* %d bytes BMP image: ok' % len(image)
+
+    print 'test/paintbrush (higher-level API):'
+    olefield = open('test/paintbrush', 'rb').read()
+    for bmp in bmps(olefield):
+        assert bmp.startswith(master)
+        print '\t%d bytes BMP image: ok' % len(bmp)
