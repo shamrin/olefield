@@ -1,8 +1,8 @@
 ## olefield: parse Microsoft Access&reg; OLE object fields
 
-`olefield` is a Python module for poor souls who need to extract data out of Microsoft Access&reg; database OLE object fields. Currently `olefield` knows how to extract BMP images.
+`olefield` is a Python module for poor souls who need to extract data out of Microsoft Access&reg; database OLE object fields.
 
-Usage:
+You can use it to extract BMP images:
 
 ```python
 >>> import olefield
@@ -22,6 +22,4 @@ If the above fails or you need to extract something else (beside BMP), try lower
 
 Then send me an email telling me what you get ;-)
 
-`olefield` doesn't yet support structured storage inside OLE fields. But it tries hard to skip data it doesn't understand. It should be easy to implement support for other files (pdf, doc).
-
-I have only tested the module with Microsoft Access&reg; 2007.
+I have only tested `olefield` with Microsoft Access&reg; 2007.
