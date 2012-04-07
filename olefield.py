@@ -50,6 +50,10 @@ def parse_olefield(s, verbose=False):
         length, ole_header = unwrap(s, """I ole_version == 0x0501 ?
                                           I ole_format
                                           i object_type_len""")
+        if ole_header['ole_format'] == 0: # empty object
+            s = s[8:] # skip it (the rest is usually footer)
+            continue
+
         if verbose: pprint(ole_header)
         s = s[length:]
 
