@@ -60,9 +60,9 @@ def objects(oleobject, verbose=False):
             if verbose: print 'footer %r' % footer
             break
 
-        # Seems to be mostly in OLE 1.0 format, documented in [MS-OLEDS],
-        # "Object Linking and Embedding (OLE) Data Structures", section 2.2
-        # http://msdn.microsoft.com/en-us/library/dd942265(v=prot.10).aspx
+        # Seems to be mostly in OLE 1.0 format, documented in "[MS-OLEDS]:
+        # Object Linking and Embedding (OLE) Data Structures", section 2.2
+        # http://msdn.microsoft.com/en-us/library/dd942265.aspx
         length, ole_header = unwrap(s, """I ole_version == 0x0501 ?
                                           I ole_format
                                           i object_type_len""")
@@ -101,17 +101,15 @@ BI_BITCOUNT_5 = 0x0018
 def metafile_bmps(metafilepict, verbose=False):
     """Parse OLE field METAFILEPICT objects, return iterator over BMPs"""
 
-    # METAFILEPICT object is Windows Metafile, but with 8 bytes prepended (*)
-    #
-    # Also see "Windows Metafile Format (wmf) Specification":
+    # METAFILEPICT object is a Windows Metafile, documented in
+    # "[MS-WMF]: Windows Metafile Format (wmf) Specification",
     # http://msdn.microsoft.com/en-us/library/cc215212.aspx
-    #
-    # (*): The first word was always 8 for me, the rest is likely garbage;
-    #      [MS-OLEDS] section 2.2.2.1 documents all 8 bytes as "reserved"
 
     s = metafilepict
 
-    # metafile header
+    # Eight reserved bytes ([MS-OLEDS], 2.2.2.1), then WMF header ([MS-WMF],
+    # 2.3.2.2). In practice first two bytes were always 0x0008 for me, the
+    # rest six are most certainly garbage.
     length, header = unwrap(s, """8s reserved
                                   H type == 0x0001 ?
                                   H header_size
@@ -124,13 +122,13 @@ def metafile_bmps(metafilepict, verbose=False):
     s = s[length:]
 
     while s:
-        # metafile record
+        # metafile record ([MS-WMF], 2.3)
         length, record_header = unwrap(s, """I record_size
                                              H function""")
         if verbose: pprint(record_header)
 
         if record_header['function'] == META_DIBSTRETCHBLT:
-            # META_DIBSTRETCHBLT record function parameters
+            # META_DIBSTRETCHBLT record parameters ([MS-WMF], 2.3.1.3)
             L, blt_header = unwrap(s[length:], """I raster_operation
                                                   h src_height
                                                   h src_width
@@ -142,7 +140,7 @@ def metafile_bmps(metafilepict, verbose=False):
                                                   h x_dest""")
             if verbose: pprint(blt_header)
 
-            # ensure record has bitmap (test copied from WMF spec, 2.3.1.3)
+            # ensure record has bitmap (directly from [MS-WMF], 2.3.1.3)
             if record_header['record_size'] == (record_header['function'] >> 8) + 3:
                 raise BadDataError('No bitmap embedded in metafile record')
 
