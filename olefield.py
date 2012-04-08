@@ -60,6 +60,9 @@ def objects(oleobject, verbose=False):
             if verbose: print 'footer %r' % footer
             break
 
+        # Seems to be mostly in OLE 1.0 format, documented in [MS-OLEDS],
+        # "Object Linking and Embedding (OLE) Data Structures", section 2.2
+        # http://msdn.microsoft.com/en-us/library/dd942265(v=prot.10).aspx
         length, ole_header = unwrap(s, """I ole_version == 0x0501 ?
                                           I ole_format
                                           i object_type_len""")
@@ -75,6 +78,7 @@ def objects(oleobject, verbose=False):
                                             """.format(**ole_header))
         # Observations about ole_header_cont['unknown']:
         #  object_type=METAFILEPICT: [ii] bmp_width*~26.46, -bmp_height*~26.46
+        #                                 (confirmed by [MS-OLEDS], 2.2.2)
         #  object_type=PBrush: all zeros
         if verbose: pprint(ole_header_cont)
         s = s[length:]
@@ -102,13 +106,13 @@ def metafile_bmps(metafilepict, verbose=False):
     # Also see "Windows Metafile Format (wmf) Specification":
     # http://msdn.microsoft.com/en-us/library/cc215212.aspx
     #
-    # (*): The first word was always 8 for me, the rest is likely garbage (or
-    #      weirdly truncated data from ole_header_cont['unknown']).
+    # (*): The first word was always 8 for me, the rest is likely garbage;
+    #      [MS-OLEDS] section 2.2.2.1 documents all 8 bytes as "reserved"
 
     s = metafilepict
 
     # metafile header
-    length, header = unwrap(s, """8s unknown
+    length, header = unwrap(s, """8s reserved
                                   H type == 0x0001 ?
                                   H header_size
                                   H version == 0x0300 ?
