@@ -1,4 +1,4 @@
-"""Extract files Microsoft Access OLE object fields"""
+"""Extract files from OLE object fields inside Microsoft Access databases"""
 
 import struct
 import re
