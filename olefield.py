@@ -73,9 +73,8 @@ def objects(oleobject, verbose=False):
         if verbose: pprint(ole_header)
         s = s[length:]
 
-        length, ole_header_cont = unwrap(s, """{object_type_len}s object_type
-                                               8s unknown
-                                            """.format(**ole_header))
+        length, ole_header_cont = unwrap(s, """%(object_type_len)ss object_type
+                                               8s unknown""" % ole_header)
         # Observations about ole_header_cont['unknown']:
         #  object_type=METAFILEPICT: [ii] bmp_width*~26.46, -bmp_height*~26.46
         #                                 (confirmed by [MS-OLEDS], 2.2.2)
