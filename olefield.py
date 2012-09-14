@@ -29,6 +29,9 @@ def objects(oleobject, verbose=False):
     # * http://jvdveen.blogspot.com/2009/01/ole-and-accessing-files-embedded-in.html
     # * http://jvdveen.blogspot.com/2009/02/ole-and-accessing-files-embedded-in.html
 
+    if not oleobject:
+        return
+
     s = oleobject
 
     # oleobject field header
